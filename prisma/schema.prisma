@@ -1,0 +1,88 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  events        Event[]
+  sharedEvents  EventShare[]
+  calendars     Calendar[]
+}
+
+model Calendar {
+  id          String    @id @default(cuid())
+  name        String
+  color       String
+  isDefault   Boolean   @default(false)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  events      Event[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  location    String?
+  start       DateTime
+  end         DateTime
+  type        String
+  color       String
+  calendarId  String
+  calendar    Calendar  @relation(fields: [calendarId], references: [id])
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  reminders   Reminder[]
+  recurrence  Recurrence?
+  shares      EventShare[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  googleEventId String? @unique
+  lastSyncedAt DateTime?
+}
+
+model Reminder {
+  id        String   @id @default(cuid())
+  minutes   Int
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  sent      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Recurrence {
+  id          String   @id @default(cuid())
+  type        String
+  interval    Int
+  endDate     DateTime?
+  daysOfWeek  Int[]
+  dayOfMonth  Int?
+  eventId     String   @unique
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+model EventShare {
+  id          String   @id @default(cuid())
+  eventId     String
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  permission  String
+  createdAt   DateTime @default(now())
+
+  @@unique([eventId, userId])
+} 
